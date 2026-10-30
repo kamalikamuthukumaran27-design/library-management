@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Library Management Interface – manage books, issue and return lifecycle, and track overdue loans." />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'" />
+  <title>Library Management</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <!-- ===== Shell bar ===== -->
+  <header class="shell-bar">
+    <div class="shell-bar__inner">
+      <div class="shell-bar__brand">
+        <span class="shell-bar__logo" aria-hidden="true">LM</span>
+        <h1 class="shell-bar__title">Library Management</h1>
+      </div>
+
+      <nav class="shell-nav" aria-label="Primary">
+        <a class="shell-nav__link" href="#/books" id="nav-books">Books</a>
+        <a class="shell-nav__link" href="#/issues" id="nav-issues">
+          Active Issues
+          <span class="badge" id="overdue-badge" hidden></span>
+        </a>
+      </nav>
+
+      <button type="button" class="icon-btn" id="theme-toggle" aria-pressed="false" aria-label="Dark theme">
+        <span aria-hidden="true" id="theme-icon">☾</span>
+      </button>
+    </div>
+  </header>
+
+  <main id="main" class="page" tabindex="-1">
+
+    <!-- ================= BOOKS VIEW ================= -->
+    <section id="view-books" class="view" aria-labelledby="books-heading">
+      <div class="page-header">
+        <div>
+          <h2 id="books-heading" class="page-title">Books</h2>
+          <p class="page-subtitle">Browse, search and maintain the library catalogue.</p>
+        </div>
+        <button type="button" class="btn btn--primary" id="add-book-btn">
+          <span aria-hidden="true">+</span> Add book
+        </button>
+      </div>
+
+      <div class="card">
+        <form class="toolbar" id="filters" role="search" aria-label="Search and filter books">
+          <div class="field field--grow">
+            <label for="book-search" class="field__label">Search</label>
+            <input type="search" id="book-search" class="input" autocomplete="off"
+                   placeholder="Title, author or ISBN" aria-controls="books-body" />
+          </div>
+
+          <fieldset class="filter-group">
+            <legend class="field__label">Category</legend>
+            <div class="filter-group__options" id="category-filter"></div>
+          </fieldset>
+
+          <fieldset class="filter-group">
+            <legend class="field__label">Availability</legend>
+            <div class="filter-group__options">
+              <label class="check"><input type="checkbox" name="availability" value="in-stock" /> In stock</label>
+              <label class="check"><input type="checkbox" name="availability" value="out-of-stock" /> Unavailable</label>
+            </div>
+          </fieldset>
+
+          <button type="button" class="btn btn--ghost" id="clear-filters">Clear filters</button>
+        </form>
+
+        <p class="result-count" id="result-count" role="status" aria-live="polite"></p>
+
+        <div class="table-wrap" id="books-table-wrap">
+          <table class="table" id="books-table">
+            <caption class="visually-hidden">Library books. Column headers are buttons that sort the table.</caption>
+            <thead>
+              <tr>
+                <th scope="col" aria-sort="none"><button type="button" class="sort-btn" data-sort="title">Title <span class="sort-btn__icon" aria-hidden="true"></span></button></th>
+                <th scope="col" aria-sort="none"><button type="button" class="sort-btn" data-sort="author">Author <span class="sort-btn__icon" aria-hidden="true"></span></button></th>
+                <th scope="col" aria-sort="none"><button type="button" class="sort-btn" data-sort="isbn">ISBN <span class="sort-btn__icon" aria-hidden="true"></span></button></th>
+                <th scope="col" aria-sort="none"><button type="button" class="sort-btn" data-sort="category">Category <span class="sort-btn__icon" aria-hidden="true"></span></button></th>
+                <th scope="col" aria-sort="none" class="num"><button type="button" class="sort-btn" data-sort="totalQty">Total <span class="sort-btn__icon" aria-hidden="true"></span></button></th>
+                <th scope="col" aria-sort="none" class="num"><button type="button" class="sort-btn" data-sort="availableQty">Available <span class="sort-btn__icon" aria-hidden="true"></span></button></th>
+                <th scope="col" class="cell-actions-head">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="books-body"></tbody>
+          </table>
+        </div>
+
+        <div class="pager">
+          <div class="field field--inline">
+            <label for="page-size" class="field__label">Rows per page</label>
+            <select id="page-size" class="input input--sm"></select>
+          </div>
+          <nav id="pagination" class="pagination" aria-label="Books pagination"></nav>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= ACTIVE ISSUES VIEW ================= -->
+    <section id="view-issues" class="view" aria-labelledby="issues-heading" hidden>
+      <div class="page-header">
+        <div>
+          <h2 id="issues-heading" class="page-title">Active Issues</h2>
+          <p class="page-subtitle">Books currently on loan, with due dates and overdue status.</p>
+        </div>
+      </div>
+
+      <dl class="stats" id="stats" aria-label="Library summary"></dl>
+
+      <div class="card">
+        <form class="toolbar" role="search" aria-label="Filter active issues">
+          <div class="field field--grow">
+            <label for="issue-search" class="field__label">Search</label>
+            <input type="search" id="issue-search" class="input" autocomplete="off"
+                   placeholder="Borrower, book title or ISBN" aria-controls="issues-body" />
+          </div>
+          <label class="check check--toolbar">
+            <input type="checkbox" id="overdue-only" /> Overdue only
+          </label>
+        </form>
+
+        <p class="result-count" id="issue-count" role="status" aria-live="polite"></p>
+
+        <div class="table-wrap">
+          <table class="table" id="issues-table">
+            <caption class="visually-hidden">Books currently issued to borrowers, ordered by due date.</caption>
+            <thead>
+              <tr>
+                <th scope="col">Book</th>
+                <th scope="col">ISBN</th>
+                <th scope="col">Borrower</th>
+                <th scope="col">Issued on</th>
+                <th scope="col">Due date</th>
+                <th scope="col">Status</th>
+                <th scope="col" class="cell-actions-head">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="issues-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== Toast region (global notifications) ===== -->
+  <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="false" aria-label="Notifications"></div>
+
+  <!-- ===== Book add/edit dialog ===== -->
+  <dialog id="book-dialog" class="dialog" aria-labelledby="book-dialog-title">
+    <form id="book-form" novalidate>
+      <header class="dialog__header">
+        <h2 id="book-dialog-title" class="dialog__title">Add book</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Close dialog"><span aria-hidden="true">✕</span></button>
+      </header>
+
+      <div class="dialog__body">
+        <input type="hidden" name="id" />
+
+        <div class="field">
+          <label for="bf-title" class="field__label">Title <span class="req" aria-hidden="true">*</span></label>
+          <input id="bf-title" name="title" class="input" type="text" maxlength="200" required autofocus
+                 aria-describedby="bf-title-error" />
+          <p class="field__error" id="bf-title-error" data-error-for="title" hidden></p>
+        </div>
+
+        <div class="field">
+          <label for="bf-author" class="field__label">Author <span class="req" aria-hidden="true">*</span></label>
+          <input id="bf-author" name="author" class="input" type="text" maxlength="200" required
+                 aria-describedby="bf-author-error" />
+          <p class="field__error" id="bf-author-error" data-error-for="author" hidden></p>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label for="bf-isbn" class="field__label">ISBN <span class="req" aria-hidden="true">*</span></label>
+            <input id="bf-isbn" name="isbn" class="input mono" type="text" maxlength="17" required
+                   inputmode="numeric" aria-describedby="bf-isbn-hint bf-isbn-error" />
+            <p class="field__hint" id="bf-isbn-hint">10 or 13 digits; hyphens allowed.</p>
+            <p class="field__error" id="bf-isbn-error" data-error-for="isbn" hidden></p>
+          </div>
+
+          <div class="field">
+            <label for="bf-category" class="field__label">Category <span class="req" aria-hidden="true">*</span></label>
+            <input id="bf-category" name="category" class="input" type="text" maxlength="60" required
+                   list="category-options" aria-describedby="bf-category-error" />
+            <datalist id="category-options"></datalist>
+            <p class="field__error" id="bf-category-error" data-error-for="category" hidden></p>
+          </div>
+        </div>
+
+        <div class="field field--narrow">
+          <label for="bf-totalQty" class="field__label">Total quantity <span class="req" aria-hidden="true">*</span></label>
+          <input id="bf-totalQty" name="totalQty" class="input" type="number" min="1" max="9999" step="1" required
+                 aria-describedby="bf-totalQty-hint bf-totalQty-error" />
+          <p class="field__hint" id="bf-totalQty-hint">Available quantity is derived from copies on loan.</p>
+          <p class="field__error" id="bf-totalQty-error" data-error-for="totalQty" hidden></p>
+        </div>
+      </div>
+
+      <footer class="dialog__footer">
+        <button type="button" class="btn btn--ghost" data-close>Cancel</button>
+        <button type="submit" class="btn btn--primary" id="book-submit">Save</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- ===== Issue dialog ===== -->
+  <dialog id="issue-dialog" class="dialog" aria-labelledby="issue-dialog-title">
+    <form id="issue-form" novalidate>
+      <header class="dialog__header">
+        <h2 id="issue-dialog-title" class="dialog__title">Issue book</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Close dialog"><span aria-hidden="true">✕</span></button>
+      </header>
+
+      <div class="dialog__body">
+        <input type="hidden" name="bookId" />
+        <p class="info-box" id="issue-info"></p>
+
+        <div class="field">
+          <label for="if-borrower" class="field__label">Borrower name <span class="req" aria-hidden="true">*</span></label>
+          <input id="if-borrower" name="borrower" class="input" type="text" maxlength="100" required autofocus
+                 autocomplete="off" aria-describedby="if-borrower-error" />
+          <p class="field__error" id="if-borrower-error" data-error-for="borrower" hidden></p>
+        </div>
+
+        <div class="field">
+          <label for="if-email" class="field__label">Borrower email (optional)</label>
+          <input id="if-email" name="email" class="input" type="email" maxlength="120" autocomplete="off"
+                 aria-describedby="if-email-error" />
+          <p class="field__error" id="if-email-error" data-error-for="email" hidden></p>
+        </div>
+      </div>
+
+      <footer class="dialog__footer">
+        <button type="button" class="btn btn--ghost" data-close>Cancel</button>
+        <button type="submit" class="btn btn--primary" id="issue-submit">Issue book</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- ===== Confirm dialog ===== -->
+  <dialog id="confirm-dialog" class="dialog dialog--sm" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+    <form method="dialog">
+      <header class="dialog__header">
+        <h2 id="confirm-title" class="dialog__title">Confirm</h2>
+      </header>
+      <div class="dialog__body">
+        <p id="confirm-message"></p>
+      </div>
+      <footer class="dialog__footer">
+        <button type="submit" value="cancel" class="btn btn--ghost" autofocus>Cancel</button>
+        <button type="submit" value="confirm" class="btn btn--primary" id="confirm-ok">Confirm</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <noscript>
+    <p class="noscript">This application requires JavaScript to run.</p>
+  </noscript>
+
+  <script src="script.js"></script>
+</body>
+</html>
